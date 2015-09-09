@@ -2412,6 +2412,7 @@ static int __net_init tcp_sk_init(struct net *net)
 	net->ipv4.sysctl_tcp_orphan_retries = 0;
 	net->ipv4.sysctl_tcp_fin_timeout = TCP_FIN_TIMEOUT;
 	net->ipv4.sysctl_tcp_notsent_lowat = UINT_MAX;
+	net->ipv4.sysctl_tcp_thin_dpifl_itt_lower_bound = TCP_THIN_DPIFL_ITT_LOWER_BOUND_MIN;
 
 	return 0;
 fail:
