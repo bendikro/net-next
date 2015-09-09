@@ -3503,6 +3503,9 @@ static inline void tcp_in_ack_event(struct sock *sk, u32 flags)
 
 	if (icsk->icsk_ca_ops->in_ack_event)
 		icsk->icsk_ca_ops->in_ack_event(sk, flags);
+
+	if (unlikely(tcp_sk(sk)->rdb))
+		rdb_ack_event(sk, flags);
 }
 
 /* This routine deals with incoming acks, but not outgoing ones. */
