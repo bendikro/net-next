@@ -215,6 +215,8 @@ void tcp_time_wait(struct sock *sk, int state, int timeo);
 
 /* TCP thin-stream limits */
 #define TCP_THIN_LINEAR_RETRIES 6       /* After 6 linear retries, do exp. backoff */
+/* Lowest possible DPIFL lower bound ITT is 10 ms (10000 usec) */
+#define TCP_THIN_DPIFL_ITT_LOWER_BOUND_MIN 10000
 
 /* TCP initial congestion window as per rfc6928 */
 #define TCP_INIT_CWND		10
@@ -264,6 +266,7 @@ extern int sysctl_tcp_workaround_signed_windows;
 extern int sysctl_tcp_slow_start_after_idle;
 extern int sysctl_tcp_thin_linear_timeouts;
 extern int sysctl_tcp_thin_dupack;
+extern int sysctl_tcp_thin_dpifl_itt_lower_bound;
 extern int sysctl_tcp_early_retrans;
 extern int sysctl_tcp_limit_output_bytes;
 extern int sysctl_tcp_challenge_ack_limit;
@@ -1643,6 +1646,24 @@ static inline bool inet_sk_transparent(const struct sock *sk)
 static inline bool tcp_stream_is_thin(struct tcp_sock *tp)
 {
 	return tp->packets_out < 4 && !tcp_in_initial_slowstart(tp);
+}
+
+/**
+ * tcp_stream_is_thin_dpifl() - Tests if the stream is thin based on dynamic PIF
+ *                              limit
+ * @tp: the tcp_sock struct
+ *
+ * Return: true if current packets in flight (PIF) count is lower than
+ *         the dynamic PIF limit, else false
+ */
+static inline bool tcp_stream_is_thin_dpifl(const struct tcp_sock *tp)
+{
+	/* Calculate the maximum allowed PIF limit by dividing the RTT by
+	 * the minimum allowed inter-transmission time (ITT).
+	 * Tests if PIF < RTT / ITT-lower-bound
+	 */
+	return (u64) tcp_packets_in_flight(tp) *
+		sysctl_tcp_thin_dpifl_itt_lower_bound < (tp->srtt_us >> 3);
 }
 
 /* /proc */

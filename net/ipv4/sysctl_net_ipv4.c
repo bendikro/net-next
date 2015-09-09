@@ -41,6 +41,7 @@ static int tcp_syn_retries_min = 1;
 static int tcp_syn_retries_max = MAX_TCP_SYNCNT;
 static int ip_ping_group_range_min[] = { 0, 0 };
 static int ip_ping_group_range_max[] = { GID_T_MAX, GID_T_MAX };
+static int tcp_thin_dpifl_itt_lower_bound_min = TCP_THIN_DPIFL_ITT_LOWER_BOUND_MIN;
 
 /* Update system visible IP port range */
 static void set_local_port_range(struct net *net, int range[2])
@@ -593,6 +594,14 @@ static struct ctl_table ipv4_table[] = {
 		.maxlen         = sizeof(int),
 		.mode           = 0644,
 		.proc_handler   = proc_dointvec
+	},
+	{
+		.procname	= "tcp_thin_dpifl_itt_lower_bound",
+		.data		= &sysctl_tcp_thin_dpifl_itt_lower_bound,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= &tcp_thin_dpifl_itt_lower_bound_min,
 	},
 	{
 		.procname	= "tcp_early_retrans",

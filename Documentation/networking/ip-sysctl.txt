@@ -708,6 +708,14 @@ tcp_thin_dupack - BOOLEAN
 	Documentation/networking/tcp-thin.txt
 	Default: 0
 
+tcp_thin_dpifl_itt_lower_bound - INTEGER
+	Controls the lower bound inter-transmission time (ITT) threshold
+	for when a stream is considered thin. The value is specified in
+	microseconds, and may not be lower than 10000 (10 ms). Based on
+	this threshold, a dynamic packets in flight limit (DPIFL) is
+	calculated, which is used to classify whether a stream is thin.
+	Default: 10000
+
 tcp_limit_output_bytes - INTEGER
 	Controls TCP Small Queue limit per tcp socket.
 	TCP bulk sender tends to increase packets in flight until it
