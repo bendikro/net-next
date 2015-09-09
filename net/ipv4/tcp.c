@@ -405,6 +405,11 @@ void tcp_init_sock(struct sock *sk)
 	u64_stats_init(&tp->syncp);
 
 	tp->reordering = sock_net(sk)->ipv4.sysctl_tcp_reordering;
+
+	tp->rdb = sock_net(sk)->ipv4.sysctl_tcp_rdb;
+	tp->rdb_max_packets = sock_net(sk)->ipv4.sysctl_tcp_rdb_max_packets;
+	tp->rdb_max_bytes = sock_net(sk)->ipv4.sysctl_tcp_rdb_max_bytes;
+
 	tcp_enable_early_retrans(tp);
 	tcp_assign_congestion_control(sk);
 
@@ -2416,6 +2421,29 @@ static int do_tcp_setsockopt(struct sock *sk, int level,
 		}
 		break;
 
+	case TCP_RDB:
+		if (val < 0 || val > 2)
+			err = -EINVAL;
+		else if (val && !sock_net(sk)->ipv4.sysctl_tcp_rdb)
+			err = -EPERM;
+		else
+			tp->rdb = val;
+		break;
+
+	case TCP_RDB_MAX_PACKETS:
+		if (val < 0)
+			err = -EINVAL;
+		else
+			tp->rdb_max_packets = val;
+		break;
+
+	case TCP_RDB_MAX_BYTES:
+		if (val < 0)
+			err = -EINVAL;
+		else
+			tp->rdb_max_bytes = val;
+		break;
+
 	case TCP_REPAIR:
 		if (!tcp_can_repair_sock(sk))
 			err = -EPERM;
@@ -2848,7 +2876,15 @@ static int do_tcp_getsockopt(struct sock *sk, int level,
 	case TCP_THIN_DUPACK:
 		val = tp->thin_dupack;
 		break;
-
+	case TCP_RDB:
+		val = tp->rdb;
+		break;
+	case TCP_RDB_MAX_PACKETS:
+		val = tp->rdb_max_packets;
+		break;
+	case TCP_RDB_MAX_BYTES:
+		val = tp->rdb_max_bytes;
+		break;
 	case TCP_REPAIR:
 		val = tp->repair;
 		break;

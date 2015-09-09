@@ -731,6 +731,31 @@ static struct ctl_table ipv4_net_table[] = {
 		.proc_handler	= proc_dointvec
 	},
 	{
+		.procname	= "tcp_rdb",
+		.data		= &init_net.ipv4.sysctl_tcp_rdb,
+		.maxlen		= sizeof(init_net.ipv4.sysctl_tcp_rdb),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= &zero,
+		.extra2		= &one,
+	},
+	{
+		.procname	= "tcp_rdb_max_bytes",
+		.data		= &init_net.ipv4.sysctl_tcp_rdb_max_bytes,
+		.maxlen		= sizeof(init_net.ipv4.sysctl_tcp_rdb_max_bytes),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= &zero,
+	},
+	{
+		.procname	= "tcp_rdb_max_packets",
+		.data		= &init_net.ipv4.sysctl_tcp_rdb_max_packets,
+		.maxlen		= sizeof(init_net.ipv4.sysctl_tcp_rdb_max_packets),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= &zero,
+	},
+	{
 		.procname	= "ip_dynaddr",
 		.data		= &init_net.ipv4.sysctl_ip_dynaddr,
 		.maxlen		= sizeof(int),

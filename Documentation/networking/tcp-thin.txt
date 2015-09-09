@@ -1,47 +1,138 @@
 Thin-streams and TCP
-====================
+-----------------------
+
 A wide range of Internet-based services that use reliable transport
-protocols display what we call thin-stream properties. This means
-that the application sends data with such a low rate that the
-retransmission mechanisms of the transport protocol are not fully
-effective. In time-dependent scenarios (like online games, control
-systems, stock trading etc.) where the user experience depends
-on the data delivery latency, packet loss can be devastating for
-the service quality. Extreme latencies are caused by TCP's
-dependency on the arrival of new data from the application to trigger
-retransmissions effectively through fast retransmit instead of
-waiting for long timeouts.
+protocols display what we call thin-stream properties. Traffic with
+thin-stream characteristics, characterized by small packets and a
+relatively high inter-transmission time (ITT), is often produced by
+latency-sensitive applications or services that rely on minimal
+latencies.
+
+In time-dependent scenarios (like online games, remote desktop,
+control systems, stock trading etc.) where the user experience depends
+on the data delivery latency, packet loss can be devastating for the
+service quality.
+
+Applications with a low write frequency, i.e. that write to the socket
+with with a low rate resulting in few packets in flight (PIF), render
+the retransmission mechanisms of the transport protocol ineffective.
+Thin streams experience increased latencies due to TCP's dependency on
+the arrival of dupACKs to trigger retransmissions effectively through
+fast retransmit instead of waiting for long timeouts.
 
 After analysing a large number of time-dependent interactive
-applications, we have seen that they often produce thin streams
-and also stay with this traffic pattern throughout its entire
-lifespan. The combination of time-dependency and the fact that the
-streams provoke high latencies when using TCP is unfortunate.
+applications, we have seen that they often produce thin streams and
+also stay with this traffic pattern throughout its entire lifespan.
+The combination of time-dependency and the fact that the streams
+provoke high latencies when using TCP is unfortunate.
 
-In order to reduce application-layer latency when packets are lost,
-a set of mechanisms has been made, which address these latency issues
-for thin streams. In short, if the kernel detects a thin stream,
-the retransmission mechanisms are modified in the following manner:
+In order to reduce application-layer latency when packets are lost, a
+set of mechanisms have been made, which address these latency issues
+for thin streams.
 
-1) If the stream is thin, fast retransmit on the first dupACK.
-2) If the stream is thin, do not apply exponential backoff.
+Two reactive mechanisms will reduce the time it takes to trigger
+retransmits when a stream has less than four PIFs:
 
-These enhancements are applied only if the stream is detected as
-thin. This is accomplished by defining a threshold for the number
-of packets in flight. If there are less than 4 packets in flight,
-fast retransmissions can not be triggered, and the stream is prone
-to experience high retransmission latencies.
+* TCP_THIN_DUPACK: Do Fast Retransmit on the first dupACK.
+
+* TCP_THIN_LINEAR_TIMEOUTS: Instead of exponential backoff after TROs,
+  perform up to 6 (TCP_THIN_LINEAR_RETRIES) linear timeouts before
+  initiating exponential backoff.
+
+The threshold of 4 PIFs is used because when there are less than 4
+PIFs, the three dupACKs usually required to trigger a fast retransmit
+may not be produced, rendering the stream prone to experience high
+retransmission latencies.
+
+Redundant Data Bundling
+***********************
+
+Redundant Data Bundling (RDB) is a mechanism aimed at reducing the
+latency for applications sending time-dependent data by proactively
+retransmitting un-ACKed segments. By bundling (retransmitting) already
+sent data with packets containing new data, the connection will be
+more resistant to sporadic packet loss which reduces the application
+layer latency significantly in congested scenarios.
+
+Retransmitting data segments before they are known to be lost is a
+proactive approach at preventing increased latencies when packets are
+lost. By bundling redundant data before the retransmission mechanisms
+are triggered, RDB is very effective at alleviating head-of-line
+blocking on the receiving side, simply by reducing the need to perform
+regular retransmissions.
+
+With RDB enabled, an application that writes less frequently than the
+limit defined by the sysctl tcp_thin_dpifl_itt_lower_bound will be
+allowed to bundle.
+
+Limitations on how much is bundled
+==================================
+
+Applying limitations on how much RDB may bundle can help control how
+RDB affects the bandwidth usage and effects on competing traffic. With
+few active RDB enabled streams, the total increase of bandwidth usage
+and negative effect on competing traffic will be minimal, unless the
+total bandwidth capacity is very limited.
+
+In scenarios with many RDB enabled streams, the total effect may
+become significant, which may justify imposing limitations on RDB.
+
+The two sysctls tcp_rdb_max_bytes and tcp_rdb_max_packets contain the
+default values used to limit how much can be bundled with each packet.
+
+tcp_rdb_max_bytes limits the payload size of an RDB packet which is
+the size including both the new (unsent) data as well as the already
+sent data. tcp_rdb_max_packets specifies the number of packets that
+may be bundled with each RDB packet. This is the most important knob
+as it directly controls how many lost packets each RDB packet may
+recover.
+
+If more fine grained control is required, tcp_rdb_max_bytes is useful
+to control how much impact RDB can have on the increased bandwidth
+requirements of the flows. If an application writes 700 bytes per
+write call, the bandwidth increase can be quite significant (even with
+a 1 packet bundling limit) if we consider a scenario with thousands of
+RDB streams.
+
+By limiting the total payload size of RDB packets to e.g. 100 bytes,
+only the smallest segments will benefit from RDB, while the segments
+that would increase the bandwidth requirements the most, will not.
+
+tcp_rdb_max_packets defaults to 1 as that allows RDB to recover from
+sporadic loss while still affecting competing traffic to a small
+degree[2].
+
+For RDB to be fully efficient, Nagle must be disabled with the socket
+option TCP_NODELAY.
+
+Using the thin-stream mechanisms
+=================================
 
 Since these mechanisms are targeted at time-dependent applications,
 they must be specifically activated by the application using the
-TCP_THIN_LINEAR_TIMEOUTS and TCP_THIN_DUPACK IOCTLS or the
-tcp_thin_linear_timeouts and tcp_thin_dupack sysctls. Both
-modifications are turned off by default.
+TCP_THIN_LINEAR_TIMEOUTS, TCP_THIN_DUPACK, and TCP_RDB IOCTLS or the
+tcp_thin_linear_timeouts, tcp_thin_dupack, and tcp_rdb sysctls. The
+modificationss are turned off by default.
 
-References
-==========
-More information on the modifications, as well as a wide range of
-experimental data can be found here:
-"Improving latency for interactive, thin-stream applications over
-reliable transport"
-http://simula.no/research/nd/publications/Simula.nd.477/simula_pdf_file
+
+Further reading
+================
+
+[1] provides information on the modifications thin_dupack and
+thin_linear_timeouts, as well as a wide range of experimental data
+
+[2] presents RDB and the motivation behind the mechanism. [3] provides
+a detailed overview of the RDB mechanism and the experiments performed
+to test the effects of RDB.
+
+[1] "Improving latency for interactive, thin-stream applications over
+     reliable transport"
+    http://urn.nb.no/URN:NBN:no-24274
+
+[2] "Latency and fairness trade-off for thin streams using redundant
+     data bundling in TCP."
+    http://dx.doi.org/10.1109/LCN.2015.7366322
+
+[3] "Taming Redundant Data Bundling: Balancing fairness and latency
+     for redundant bundling in TCP"
+    http://urn.nb.no/URN:NBN:no-48283

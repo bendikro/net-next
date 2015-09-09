@@ -226,6 +226,10 @@ struct tcp_sock {
 		syn_data_acked:1,/* data in SYN is acked by SYN-ACK */
 		save_syn:1,	/* Save headers of SYN packet */
 		is_cwnd_limited:1;/* forward progress limited by snd_cwnd? */
+	u8	rdb         : 2;/* Redundant Data Bundling enabled	*/
+
+	u16 rdb_max_bytes;	/* Max payload bytes in an RDB packet	*/
+	u16 rdb_max_packets;	/* Max packets allowed to be bundled by RDB */
 	u32	tlp_high_seq;	/* snd_nxt at the time of TLP retransmit. */
 
 /* RTT measurement */

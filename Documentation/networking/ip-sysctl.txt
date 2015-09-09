@@ -726,6 +726,37 @@ tcp_thin_dpifl_itt_lower_bound - INTEGER
 	calculated, which is used to classify whether a stream is thin.
 	Default: 10000
 
+tcp_rdb - BOOLEAN
+	Controls the use of the Redundant Data Bundling (RDB) mechanism
+	for TCP connections.
+
+	RDB is a TCP mechanism aimed at reducing the latency for
+	applications transmitting time-dependent data. By bundling already
+	sent data in packets with new data, RDB alleviates head-of-line
+	blocking on the receiver side by reducing the need to retransmit
+	data segments when packets are lost. See tcp-thin.txt for further
+	details.
+	Possible values:
+	0 - Disable RDB system wide, i.e. disallow enabling RDB on TCP
+	    sockets with the socket option TCP_RDB.
+	1 - Allow enabling/disabling RDB with socket option TCP_RDB.
+	2 - Set RDB to be enabled by default for all new TCP connections
+	    and allow modifying socket with socket option TCP_RDB.
+	Default: 1
+
+tcp_rdb_max_bytes - INTEGER
+	Enable restriction on how many bytes an RDB packet can contain.
+	This is the total amount of payload including the new unsent data.
+	A value of 0 will disable bytes based limitation.
+	Default: 0
+
+tcp_rdb_max_packets - INTEGER
+	Enable restriction on how many previous packets in the output queue
+	RDB may include data from. A value of 1 will restrict bundling to
+	only the data from the last packet that was sent.
+	A value of 0 will disable packet based limitation.
+	Default: 1
+
 tcp_limit_output_bytes - INTEGER
 	Controls TCP Small Queue limit per tcp socket.
 	TCP bulk sender tends to increase packets in flight until it

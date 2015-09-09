@@ -115,6 +115,9 @@ enum {
 #define TCP_CC_INFO		26	/* Get Congestion Control (optional) info */
 #define TCP_SAVE_SYN		27	/* Record SYN headers for new connections */
 #define TCP_SAVED_SYN		28	/* Get SYN headers recorded for connection */
+#define TCP_RDB			29	/* Enable Redundant Data Bundling mechanism */
+#define TCP_RDB_MAX_BYTES	30	/* Max payload bytes in an RDB packet */
+#define TCP_RDB_MAX_PACKETS	31	/* Max packets allowed to be bundled by RDB */
 
 struct tcp_repair_opt {
 	__u32	opt_code;
