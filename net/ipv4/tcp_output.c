@@ -897,8 +897,8 @@ out:
  * We are working here with either a clone of the original
  * SKB, or a fresh unique copy made by the retransmit engine.
  */
-static int tcp_transmit_skb(struct sock *sk, struct sk_buff *skb, int clone_it,
-			    gfp_t gfp_mask)
+int tcp_transmit_skb(struct sock *sk, struct sk_buff *skb, int clone_it,
+		     gfp_t gfp_mask)
 {
 	const struct inet_connection_sock *icsk = inet_csk(sk);
 	struct inet_sock *inet;
@@ -2110,9 +2110,12 @@ static bool tcp_write_xmit(struct sock *sk, unsigned int mss_now, int nonagle,
 				break;
 		}
 
-		if (unlikely(tcp_transmit_skb(sk, skb, 1, gfp)))
+		if (unlikely(tcp_sk(sk)->rdb)) {
+			if (tcp_transmit_rdb_skb(sk, skb, mss_now, gfp))
+				break;
+		} else if (unlikely(tcp_transmit_skb(sk, skb, 1, gfp))) {
 			break;
-
+		}
 repair:
 		/* Advance the send_head.  This one is sent out.
 		 * This call will increment packets_out.
@@ -2439,15 +2442,32 @@ u32 __tcp_select_window(struct sock *sk)
 	return window;
 }
 
+/**
+ * skb_append_data() - copy data from an SKB to the end of another
+ *                     update end sequence number and checksum
+ * @from_skb: the SKB to copy data from
+ * @to_skb: the SKB to copy data to
+ */
+void tcp_skb_append_data(struct sk_buff *from_skb, struct sk_buff *to_skb)
+{
+	skb_copy_from_linear_data(from_skb, skb_put(to_skb, from_skb->len),
+				  from_skb->len);
+	/* Update sequence range on original skb. */
+	TCP_SKB_CB(to_skb)->end_seq = TCP_SKB_CB(from_skb)->end_seq;
+
+	if (from_skb->ip_summed == CHECKSUM_PARTIAL)
+		to_skb->ip_summed = CHECKSUM_PARTIAL;
+
+	if (to_skb->ip_summed != CHECKSUM_PARTIAL)
+		to_skb->csum = csum_block_add(to_skb->csum, from_skb->csum,
+					      to_skb->len);
+}
+
 /* Collapses two adjacent SKB's during retransmission. */
 static void tcp_collapse_retrans(struct sock *sk, struct sk_buff *skb)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct sk_buff *next_skb = tcp_write_queue_next(sk, skb);
-	int skb_size, next_skb_size;
-
-	skb_size = skb->len;
-	next_skb_size = next_skb->len;
 
 	BUG_ON(tcp_skb_pcount(skb) != 1 || tcp_skb_pcount(next_skb) != 1);
 
@@ -2455,17 +2475,7 @@ static void tcp_collapse_retrans(struct sock *sk, struct sk_buff *skb)
 
 	tcp_unlink_write_queue(next_skb, sk);
 
-	skb_copy_from_linear_data(next_skb, skb_put(skb, next_skb_size),
-				  next_skb_size);
-
-	if (next_skb->ip_summed == CHECKSUM_PARTIAL)
-		skb->ip_summed = CHECKSUM_PARTIAL;
-
-	if (skb->ip_summed != CHECKSUM_PARTIAL)
-		skb->csum = csum_block_add(skb->csum, next_skb->csum, skb_size);
-
-	/* Update sequence range on original skb. */
-	TCP_SKB_CB(skb)->end_seq = TCP_SKB_CB(next_skb)->end_seq;
+	tcp_skb_append_data(next_skb, skb);
 
 	/* Merge over control information. This moves PSH/FIN etc. over */
 	TCP_SKB_CB(skb)->tcp_flags |= TCP_SKB_CB(next_skb)->tcp_flags;

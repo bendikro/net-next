@@ -288,6 +288,8 @@ int sysctl_tcp_autocorking __read_mostly = 1;
 
 int sysctl_tcp_thin_dpifl_itt_lower_bound __read_mostly = TCP_THIN_DPIFL_ITT_LOWER_BOUND_MIN;
 
+int sysctl_tcp_rdb __read_mostly;
+
 struct percpu_counter tcp_orphan_count;
 EXPORT_SYMBOL_GPL(tcp_orphan_count);
 
@@ -407,6 +409,7 @@ void tcp_init_sock(struct sock *sk)
 	u64_stats_init(&tp->syncp);
 
 	tp->reordering = sock_net(sk)->ipv4.sysctl_tcp_reordering;
+	tp->rdb = sysctl_tcp_rdb;
 	tcp_enable_early_retrans(tp);
 	tcp_assign_congestion_control(sk);
 
@@ -2412,6 +2415,13 @@ static int do_tcp_setsockopt(struct sock *sk, int level,
 		}
 		break;
 
+	case TCP_RDB:
+		if (val < 0 || val > 1)
+			err = -EINVAL;
+		else
+			tp->rdb = val;
+		break;
+
 	case TCP_REPAIR:
 		if (!tcp_can_repair_sock(sk))
 			err = -EPERM;
@@ -2836,7 +2846,9 @@ static int do_tcp_getsockopt(struct sock *sk, int level,
 	case TCP_THIN_DUPACK:
 		val = tp->thin_dupack;
 		break;
-
+	case TCP_RDB:
+		val = tp->rdb;
+		break;
 	case TCP_REPAIR:
 		val = tp->repair;
 		break;
