@@ -269,6 +269,12 @@ struct tcp_sock {
 	struct sk_buff* lost_skb_hint;
 	struct sk_buff *retransmit_skb_hint;
 
+	/* The limit used to identify when a stream is thin based in a minimum
+	 * allowed inter-transmission time (ITT) in microseconds. This is used
+	 * to dynamically calculate a max packets in flight limit (DPIFL).
+	*/
+	int thin_dpifl_itt_lower_bound;
+
 	/* OOO segments go in this list. Note that socket lock must be held,
 	 * as we do not use sk_buff_head lock.
 	 */

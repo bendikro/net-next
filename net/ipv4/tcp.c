@@ -287,6 +287,8 @@ int sysctl_tcp_min_tso_segs __read_mostly = 2;
 
 int sysctl_tcp_autocorking __read_mostly = 1;
 
+int sysctl_tcp_thin_dpifl_itt_lower_bound __read_mostly = TCP_THIN_DPIFL_ITT_LOWER_BOUND_MIN;
+
 struct percpu_counter tcp_orphan_count;
 EXPORT_SYMBOL_GPL(tcp_orphan_count);
 
@@ -406,6 +408,7 @@ void tcp_init_sock(struct sock *sk)
 	u64_stats_init(&tp->syncp);
 
 	tp->reordering = sysctl_tcp_reordering;
+	tp->thin_dpifl_itt_lower_bound = sysctl_tcp_thin_dpifl_itt_lower_bound;
 	tcp_enable_early_retrans(tp);
 	tcp_assign_congestion_control(sk);
 
