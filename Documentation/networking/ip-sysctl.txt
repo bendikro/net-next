@@ -744,6 +744,10 @@ tcp_rdb - BOOLEAN
 	    and allow modifying socket with socket option TCP_RDB.
 	Default: 1
 
+tcp_rdb_wait_congestion - BOOLEAN
+	Controls wether an RDB-enabled connection, by default, should
+	postpone bundling until congestion has been detected.
+
 tcp_rdb_max_bytes - INTEGER
 	Enable restriction on how many bytes an RDB packet can contain.
 	This is the total amount of payload including the new unsent data.

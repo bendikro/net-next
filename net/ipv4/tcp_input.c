@@ -3539,7 +3539,7 @@ static inline void tcp_in_ack_event(struct sock *sk, u32 flags)
 		icsk->icsk_ca_ops->in_ack_event(sk, flags);
 
 	if (unlikely(tcp_sk(sk)->rdb))
-		tcp_rdb_ack_event(sk, flags);
+		tcp_rdb_ack_event(sk);
 }
 
 /* Congestion control has updated the cwnd already. So if we're in

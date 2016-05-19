@@ -80,10 +80,6 @@ struct netns_ipv4 {
 	int sysctl_tcp_ecn;
 	int sysctl_tcp_ecn_fallback;
 
-	int sysctl_tcp_rdb;
-	int sysctl_tcp_rdb_max_bytes;
-	int sysctl_tcp_rdb_max_packets;
-
 	int sysctl_ip_default_ttl;
 	int sysctl_ip_no_pmtu_disc;
 	int sysctl_ip_fwd_use_pmtu;
@@ -116,6 +112,11 @@ struct netns_ipv4 {
 	int sysctl_tcp_fin_timeout;
 	unsigned int sysctl_tcp_notsent_lowat;
 	int sysctl_tcp_thin_dpifl_itt_lower_bound;
+
+	int sysctl_tcp_rdb;
+	int sysctl_tcp_rdb_wait_congestion;
+	int sysctl_tcp_rdb_max_bytes;
+	int sysctl_tcp_rdb_max_packets;
 
 	int sysctl_igmp_max_memberships;
 	int sysctl_igmp_max_msf;

@@ -407,8 +407,8 @@ void tcp_init_sock(struct sock *sk)
 	tp->reordering = sock_net(sk)->ipv4.sysctl_tcp_reordering;
 
 	tp->rdb = sock_net(sk)->ipv4.sysctl_tcp_rdb;
-	tp->rdb_max_packets = sock_net(sk)->ipv4.sysctl_tcp_rdb_max_packets;
-	tp->rdb_max_bytes = sock_net(sk)->ipv4.sysctl_tcp_rdb_max_bytes;
+	tp->rdb_opts.max_packets = sock_net(sk)->ipv4.sysctl_tcp_rdb_max_packets;
+	tp->rdb_opts.max_bytes = sock_net(sk)->ipv4.sysctl_tcp_rdb_max_bytes;
 
 	tcp_enable_early_retrans(tp);
 	tcp_assign_congestion_control(sk);
@@ -2331,6 +2331,54 @@ static int tcp_repair_options_est(struct tcp_sock *tp,
 	return 0;
 }
 
+/**
+ * tcp_rdb_options() - modify RDB options
+ * @tp: tcp socket.
+ * @optbuf: Options to modify.
+ * @len: Total size of optbuf in bytes.
+ *
+ * Set one or more RDB options on the socket.
+ *
+ * Return:
+ *   0      - on success
+ *   EINVAL - on bad option value
+ *   EFAULT - on failing to copy from user space
+ */
+static int tcp_rdb_options(struct tcp_sock *tp,
+			   struct tcp_rdb_opt __user *optbuf, unsigned int len)
+{
+	struct tcp_rdb_opt opt;
+
+	while (len >= sizeof(opt)) {
+		if (copy_from_user(&opt, optbuf, sizeof(opt)))
+			return -EFAULT;
+
+		optbuf++;
+		len -= sizeof(opt);
+
+		switch (opt.opt_code) {
+		case RDBOPT_WAIT_CONGESTION:
+			if (opt.opt_val > 1)
+				return -EINVAL;
+			tp->rdb_wait_congestion = opt.opt_val;
+			tp->rdb_opts.last_total_retrans = tp->total_retrans;
+			break;
+		case RDBOPT_MAX_BYTES:
+			if (opt.opt_val > USHRT_MAX)
+				return -EINVAL;
+			tp->rdb_opts.max_bytes = opt.opt_val;
+			break;
+		case RDBOPT_MAX_PACKETS:
+			if (opt.opt_val > USHRT_MAX)
+				return -EINVAL;
+			tp->rdb_opts.max_packets = opt.opt_val;
+			break;
+		}
+	}
+
+	return 0;
+}
+
 /*
  *	Socket option code for TCP.
  */
@@ -2430,18 +2478,9 @@ static int do_tcp_setsockopt(struct sock *sk, int level,
 			tp->rdb = val;
 		break;
 
-	case TCP_RDB_MAX_PACKETS:
-		if (val < 0)
-			err = -EINVAL;
-		else
-			tp->rdb_max_packets = val;
-		break;
-
-	case TCP_RDB_MAX_BYTES:
-		if (val < 0)
-			err = -EINVAL;
-		else
-			tp->rdb_max_bytes = val;
+	case TCP_RDB_OPTIONS:
+		err = tcp_rdb_options(tp, (struct tcp_rdb_opt __user *)optval,
+				      optlen);
 		break;
 
 	case TCP_REPAIR:
@@ -2878,12 +2917,6 @@ static int do_tcp_getsockopt(struct sock *sk, int level,
 		break;
 	case TCP_RDB:
 		val = tp->rdb;
-		break;
-	case TCP_RDB_MAX_PACKETS:
-		val = tp->rdb_max_packets;
-		break;
-	case TCP_RDB_MAX_BYTES:
-		val = tp->rdb_max_bytes;
 		break;
 	case TCP_REPAIR:
 		val = tp->repair;

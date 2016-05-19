@@ -68,9 +68,8 @@ static unsigned int rdb_detect_loss(struct sock *sk)
 /**
  * tcp_rdb_ack_event() - initiate RDB loss detection
  * @sk: socket
- * @flags: flags
  */
-void tcp_rdb_ack_event(struct sock *sk, u32 flags)
+void tcp_rdb_ack_event(struct sock *sk)
 {
 	unsigned int lost = rdb_detect_loss(sk);
 	if (lost) {
@@ -147,9 +146,9 @@ static struct sk_buff *rdb_can_bundle_test(const struct sock *sk,
 	u32 skbs_in_bundle_count = 1; /* Start on 1 to account for xmit_skb */
 	u32 total_payload = xmit_skb->len;
 
-	if (tp->rdb_max_bytes)
+	if (tp->rdb_opts.max_bytes)
 		max_payload = min_t(unsigned int, max_payload,
-				    tp->rdb_max_bytes);
+				    tp->rdb_opts.max_bytes);
 
 	/* We start at xmit_skb->prev, and go backwards */
 	tcp_for_write_queue_reverse_from_safe(skb, tmp, sk) {
@@ -157,8 +156,8 @@ static struct sk_buff *rdb_can_bundle_test(const struct sock *sk,
 		if ((total_payload + skb->len) > max_payload)
 			break;
 
-		if (tp->rdb_max_packets &&
-		    (skbs_in_bundle_count > tp->rdb_max_packets))
+		if (tp->rdb_opts.max_packets &&
+		    (skbs_in_bundle_count > tp->rdb_opts.max_packets))
 			break;
 
 		total_payload += skb->len;
@@ -192,11 +191,14 @@ int tcp_transmit_rdb_skb(struct sock *sk, struct sk_buff *xmit_skb,
 	/* How we detect that RDB was used. When equal, no RDB data was sent */
 	TCP_SKB_CB(xmit_skb)->tx.rdb_start_seq = TCP_SKB_CB(xmit_skb)->seq;
 
-	/*  */
-	if (tcp_sk(sk)->rdb == 1 && tcp_in_initial_slowstart(tcp_sk(sk)))
-		goto xmit_default;
+	/* We must wait for a retransmission to occur before bundling */
+	if (tcp_sk(sk)->rdb_wait_congestion) {
+		if (tcp_sk(sk)->rdb_opts.last_total_retrans == tcp_sk(sk)->total_retrans)
+			goto xmit_default;
+		tcp_sk(sk)->rdb_wait_congestion = 0;
+	}
 
-	if (!tcp_stream_is_thin_dpifl(tcp_sk(sk)))
+	if (!tcp_stream_is_thin_dpifl(sk))
 		goto xmit_default;
 
 	/* No bundling if first in queue */

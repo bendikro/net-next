@@ -212,7 +212,6 @@ struct tcp_sock {
 		u8 reord;    /* reordering detected */
 	} rack;
 	u16	advmss;		/* Advertised MSS			*/
-	u8	unused;
 	u8	nonagle     : 4,/* Disable Nagle algorithm?             */
 		thin_lto    : 1,/* Use linear timeouts for thin streams */
 		thin_dupack : 1,/* Fast retransmit on first dupack      */
@@ -226,10 +225,16 @@ struct tcp_sock {
 		syn_data_acked:1,/* data in SYN is acked by SYN-ACK */
 		save_syn:1,	/* Save headers of SYN packet */
 		is_cwnd_limited:1;/* forward progress limited by snd_cwnd? */
-	u8	rdb         : 2;/* Redundant Data Bundling enabled	*/
+	u8	rdb:1,                 /* Redundant Data Bundling enabled     */
+		rdb_wait_congestion:1, /* RDB wait to bundle until next loss  */
+		unused:6;
 
-	u16 rdb_max_bytes;	/* Max payload bytes in an RDB packet	*/
-	u16 rdb_max_packets;	/* Max packets allowed to be bundled by RDB */
+	struct rdb_options {
+		u16 max_bytes;	/* Max payload bytes in an RDB packet	*/
+		u16 max_packets;/* Max packets allowed to be bundled by RDB */
+		u32 last_total_retrans;
+	} rdb_opts;
+
 	u32	tlp_high_seq;	/* snd_nxt at the time of TLP retransmit. */
 
 /* RTT measurement */

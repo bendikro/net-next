@@ -740,6 +740,15 @@ static struct ctl_table ipv4_net_table[] = {
 		.extra2		= &one,
 	},
 	{
+		.procname	= "tcp_rdb_wait_congestion",
+		.data		= &init_net.ipv4.sysctl_tcp_rdb_wait_congestion,
+		.maxlen		= sizeof(init_net.ipv4.sysctl_tcp_rdb_wait_congestion),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= &zero,
+		.extra2		= &one,
+	},
+	{
 		.procname	= "tcp_rdb_max_bytes",
 		.data		= &init_net.ipv4.sysctl_tcp_rdb_max_bytes,
 		.maxlen		= sizeof(init_net.ipv4.sysctl_tcp_rdb_max_bytes),

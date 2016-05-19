@@ -99,8 +99,11 @@ only the smallest segments will benefit from RDB, while the segments
 that would increase the bandwidth requirements the most, will not.
 
 tcp_rdb_max_packets defaults to 1 as that allows RDB to recover from
-sporadic loss while still affecting competing traffic to a small
-degree[2].
+sporadic packet loss while still affecting competing traffic to a
+small degree[2].
+
+The sysctl tcp_rdb_wait_congestion specifies wether a connection should
+bundle only after congestion has been detected.
 
 For RDB to be fully efficient, Nagle must be disabled with the socket
 option TCP_NODELAY.

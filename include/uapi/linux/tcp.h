@@ -116,8 +116,7 @@ enum {
 #define TCP_SAVE_SYN		27	/* Record SYN headers for new connections */
 #define TCP_SAVED_SYN		28	/* Get SYN headers recorded for connection */
 #define TCP_RDB			29	/* Enable Redundant Data Bundling mechanism */
-#define TCP_RDB_MAX_BYTES	30	/* Max payload bytes in an RDB packet */
-#define TCP_RDB_MAX_PACKETS	31	/* Max packets allowed to be bundled by RDB */
+#define TCP_RDB_OPTIONS		30	/* Max packets allowed to be bundled by RDB */
 
 struct tcp_repair_opt {
 	__u32	opt_code;
@@ -216,5 +215,19 @@ struct tcp_md5sig {
 	__u32	__tcpm_pad2;				/* zero */
 	__u8	tcpm_key[TCP_MD5SIG_MAXKEYLEN];		/* key (binary) */
 };
+
+
+struct tcp_rdb_opt {
+	__u32	opt_code;
+	__u32	opt_val;
+};
+
+/*
+ * TCP_RDB_OPTIONS socket options
+ */
+#define RDBOPT_WAIT_CONGESTION 0 /* Force to have RDB wait for congestion before bundling */
+#define RDBOPT_MAX_BYTES       1 /* Max payload bytes in an RDB packet	*/
+#define RDBOPT_MAX_PACKETS     2 /* Max packets allowed to be bundled by RDB */
+
 
 #endif /* _UAPI_LINUX_TCP_H */
