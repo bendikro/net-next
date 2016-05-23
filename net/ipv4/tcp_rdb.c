@@ -72,8 +72,11 @@ static unsigned int rdb_detect_loss(struct sock *sk)
  */
 void tcp_rdb_ack_event(struct sock *sk, u32 flags)
 {
-	if (rdb_detect_loss(sk))
+	unsigned int lost = rdb_detect_loss(sk);
+	if (lost) {
 		tcp_enter_cwr(sk);
+		NET_INC_STATS(sock_net(sk), LINUX_MIB_TCPRDBLOSSREPAIRS);
+	}
 }
 
 /**
