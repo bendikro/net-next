@@ -15,14 +15,13 @@
  * receives packets where the sequence number is not the expected
  * sequence number.
  *
- * Return: The number of packets that are presumed to be lost
+ * Return: 1 if packet loss, else 0
  */
 static unsigned int rdb_detect_loss(struct sock *sk)
 {
 	struct sk_buff *skb, *tmp;
 	struct tcp_skb_cb *scb;
 	u32 seq_acked = tcp_sk(sk)->snd_una;
-	unsigned int packets_lost = 0;
 
 	tcp_for_write_queue(skb, sk) {
 		if (skb == tcp_send_head(sk))
@@ -58,16 +57,23 @@ static unsigned int rdb_detect_loss(struct sock *sk)
 		tcp_for_write_queue_reverse_from_safe(skb, tmp, sk) {
 			if (before(TCP_SKB_CB(skb)->seq, scb->tx.rdb_start_seq))
 				break;
-			packets_lost++;
+			return 1;
 		}
 		break;
 	}
-	return packets_lost;
+	return 0;
 }
 
 /**
  * tcp_rdb_ack_event() - initiate RDB loss detection
  * @sk: socket
+ *
+ * When RDB is able to repair a packet loss, the loss event is hidden
+ * from the regular loss detection mechanisms. To ensure RDB streams
+ * behave fairly towards competing TCP traffic, we call tcp_enter_cwr()
+ * to enter congestion window reduction state.
+ * tcp_enter_cwr() disables undoing the CWND reduction, which avoids
+ * incorrectly undoing the reduction later on.
  */
 void tcp_rdb_ack_event(struct sock *sk)
 {
