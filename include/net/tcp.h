@@ -573,7 +573,7 @@ void tcp_skb_mark_lost_uncond_verify(struct tcp_sock *tp, struct sk_buff *skb);
 void tcp_fin(struct sock *sk);
 
 /* tcp_rdb.c */
-void tcp_rdb_ack_event(struct sock *sk, u32 flags);
+void tcp_rdb_ack_event(struct sock *sk);
 int tcp_transmit_rdb_skb(struct sock *sk, struct sk_buff *xmit_skb,
 			 unsigned int mss_now, gfp_t gfp_mask);
 
