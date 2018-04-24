@@ -322,6 +322,8 @@ struct alx_rrd {
 
 #define ALX_MAX_SETUP_LNK_CYCLE	50
 
+#define ALX_MAC_RESET_DELAY	200
+
 /* for FlowControl */
 #define ALX_FC_RX		0x01
 #define ALX_FC_TX		0x02

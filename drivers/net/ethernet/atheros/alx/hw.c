@@ -383,10 +383,12 @@ static int alx_stop_mac(struct alx_hw *hw)
 	txq = alx_read_mem32(hw, ALX_TXQ0);
 	alx_write_mem32(hw, ALX_TXQ0, txq & ~ALX_TXQ0_EN);
 
-	udelay(40);
+	udelay(ALX_MAC_RESET_DELAY);
 
 	hw->rx_ctrl &= ~(ALX_MAC_CTRL_RX_EN | ALX_MAC_CTRL_TX_EN);
 	alx_write_mem32(hw, ALX_MAC_CTRL, hw->rx_ctrl);
+
+	udelay(ALX_MAC_RESET_DELAY);
 
 	for (i = 0; i < ALX_DMA_MAC_RST_TO; i++) {
 		val = alx_read_mem32(hw, ALX_MAC_STS);
