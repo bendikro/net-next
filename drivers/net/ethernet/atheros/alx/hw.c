@@ -377,23 +377,46 @@ static int alx_stop_mac(struct alx_hw *hw)
 {
 	u32 rxq, txq, val;
 	u16 i;
+	int attempts = 0;
+	int waited = 0;
 
 	rxq = alx_read_mem32(hw, ALX_RXQ0);
 	alx_write_mem32(hw, ALX_RXQ0, rxq & ~ALX_RXQ0_EN);
 	txq = alx_read_mem32(hw, ALX_TXQ0);
 	alx_write_mem32(hw, ALX_TXQ0, txq & ~ALX_TXQ0_EN);
 
+	//udelay(ALX_MAC_RESET_DELAY);
 	udelay(40);
 
 	hw->rx_ctrl &= ~(ALX_MAC_CTRL_RX_EN | ALX_MAC_CTRL_TX_EN);
 	alx_write_mem32(hw, ALX_MAC_CTRL, hw->rx_ctrl);
 
+ testidle:
+
 	for (i = 0; i < ALX_DMA_MAC_RST_TO; i++) {
 		val = alx_read_mem32(hw, ALX_MAC_STS);
-		if (!(val & ALX_MAC_STS_IDLE))
+		if (!(val & ALX_MAC_STS_IDLE)) {
+			printk(KERN_WARNING
+				   "ALXDBG: alx_stop_mac: Success on i: %hu, attempt: %d, delay count: %d, after waiting: %d usecs\n", i, attempts, (attempts * ALX_DMA_MAC_RST_TO) + i, waited);
 			return 0;
+		}
 		udelay(10);
+		waited += 10;
+		//udelay(30);
 	}
+
+	attempts++;
+
+	//printk(KERN_WARNING
+	//	   "ALXDBG: alx_stop_mac: timed out. Tries left: %d\n", tries);
+
+	if (attempts < 10) {
+		//udelay(ALX_MAC_RESET_DELAY);
+		goto testidle;
+	}
+
+	printk(KERN_WARNING
+		   "ALXDBG: alx_stop_mac: timed out after delaying %d times for a total of: %d usecs\n", attempts * ALX_DMA_MAC_RST_TO, waited);
 
 	return -ETIMEDOUT;
 }

@@ -2023,6 +2023,7 @@ module_pci_driver(alx_driver);
 MODULE_DEVICE_TABLE(pci, alx_pci_tbl);
 MODULE_AUTHOR("Johannes Berg <johannes@sipsolutions.net>");
 MODULE_AUTHOR("Qualcomm Corporation, <nic-devel@qualcomm.com>");
+MODULE_AUTHOR("Bendik");
 MODULE_DESCRIPTION(
 	"Qualcomm Atheros(R) AR816x/AR817x PCI-E Ethernet Network Driver");
 MODULE_LICENSE("GPL");
